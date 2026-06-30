@@ -220,6 +220,7 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
 
   const [testActive, setTestActive] = useState(false);
   const stopAudioRef = useRef<(() => void) | null>(null);
+  const vibrationSupported = 'vibrate' in navigator;
 
   useEffect(() => {
     return () => {
@@ -329,22 +330,33 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
                 </div>
               </div>
               
-              <button 
-                onClick={() => {
-                  if (testActive) {
-                    navigator.vibrate(0);
-                    setTestActive(false);
-                  } else {
-                    navigator.vibrate([200, 100, 300, 100, 500, 150, 800]); 
-                    setTestActive(true);
-                    setTimeout(() => { navigator.vibrate(0); setTestActive(false) }, 3000);
-                  }
-                }}
-                className="w-full py-3 bg-transparent border border-white/20 rounded-full text-xs uppercase tracking-widest hover:bg-white hover:text-black mt-4 flex justify-center items-center gap-2 transition-colors"
-              >
-                {testActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                Test Signature
-              </button>
+              <div className="flex flex-col gap-2">
+                <button 
+                  onClick={() => {
+                    if (!vibrationSupported) {
+                      alert('Vibration is not supported on this device/browser (e.g. iPhones or missing permissions).');
+                      return;
+                    }
+                    if (testActive) {
+                      navigator.vibrate(0);
+                      setTestActive(false);
+                    } else {
+                      navigator.vibrate([200, 100, 300, 100, 500, 150, 800]); 
+                      setTestActive(true);
+                      setTimeout(() => { navigator.vibrate(0); setTestActive(false) }, 3000);
+                    }
+                  }}
+                  className={`w-full py-3 bg-transparent border border-white/20 rounded-full text-xs uppercase tracking-widest ${vibrationSupported ? 'hover:bg-white hover:text-black' : 'opacity-50 cursor-not-allowed'} mt-4 flex justify-center items-center gap-2 transition-colors`}
+                >
+                  {testActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  Test Signature
+                </button>
+                {!vibrationSupported && (
+                  <p className="text-[10px] text-red-400 text-center uppercase tracking-widest">
+                    Haptics not supported on this device
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 {
   "name": "Gentle Wake Alarm",
   "description": "A smart alarm app that wakes you up gently with gradually increasing vibrations under your pillow before playing a ringtone.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["vibrate"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
