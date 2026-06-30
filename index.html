@@ -8,14 +8,27 @@
     <meta name="theme-color" content="#000000" />
     <link rel="apple-touch-icon" href="/icon.svg" />
   </head>
-  <body>
+  <body style="background-color: #0A0A0A; color: white;">
+    <div id="error-display" style="display: none; padding: 20px; color: #ff8080; font-family: monospace; word-wrap: break-word;"></div>
     <div id="root"></div>
+    <script>
+      window.addEventListener('error', function(e) {
+        document.getElementById('error-display').style.display = 'block';
+        document.getElementById('error-display').innerText = 'Global Error: ' + e.message + '\n' + e.filename + ':' + e.lineno;
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        document.getElementById('error-display').style.display = 'block';
+        document.getElementById('error-display').innerText = 'Unhandled Promise Rejection: ' + e.reason;
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(err => {
-            console.log('ServiceWorker registration failed: ', err);
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
           });
         });
       }

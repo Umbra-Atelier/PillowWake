@@ -27,10 +27,15 @@ export function useAlarmManager(alarms: Alarm[]) {
       if (triggered) {
         // Wait! We only want to trigger once per minute. 
         // We can track last triggered time to avoid re-triggering.
-        const lastTriggered = localStorage.getItem('lastTriggeredTime');
-        const triggerKey = `${triggered.id}-${now.toDateString()}-${currentTimeStr}`;
-        if (lastTriggered !== triggerKey) {
-          localStorage.setItem('lastTriggeredTime', triggerKey);
+        try {
+          const lastTriggered = localStorage.getItem('lastTriggeredTime');
+          const triggerKey = `${triggered.id}-${now.toDateString()}-${currentTimeStr}`;
+          if (lastTriggered !== triggerKey) {
+            localStorage.setItem('lastTriggeredTime', triggerKey);
+            startAlarm(triggered);
+          }
+        } catch (e) {
+          // Fallback if localStorage is unavailable
           startAlarm(triggered);
         }
       }
@@ -60,7 +65,9 @@ export function useAlarmManager(alarms: Alarm[]) {
       stopAudioRef.current();
       stopAudioRef.current = null;
     }
-    navigator.vibrate(0); // Stop vibration
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(0); // Stop vibration
+    }
   }, []);
 
   const snoozeAlarm = useCallback(() => {
@@ -117,10 +124,12 @@ export function useAlarmManager(alarms: Alarm[]) {
       // Handle Vibration (Intensity is simulated by duty cycle)
       // Cycle is 1000ms
       const vTime = Math.max(0, Math.min(1000, Math.floor(currentIntensity * 1000)));
-      if (vTime > 0) {
-        navigator.vibrate([vTime, 1000 - vTime]);
-      } else {
-        navigator.vibrate(0);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        if (vTime > 0) {
+          navigator.vibrate([vTime, 1000 - vTime]);
+        } else {
+          navigator.vibrate(0);
+        }
       }
 
       // Handle Audio

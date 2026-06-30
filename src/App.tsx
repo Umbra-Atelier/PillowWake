@@ -25,15 +25,23 @@ export default function App() {
   const { activeAlarm, alarmState, stopAlarm, snoozeAlarm, startAlarm } = useAlarmManager(alarms);
 
   useEffect(() => {
-    const saved = localStorage.getItem('gentle-alarms');
-    if (saved) {
-      setAlarms(JSON.parse(saved));
+    try {
+      const saved = localStorage.getItem('gentle-alarms');
+      if (saved) {
+        setAlarms(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Failed to load alarms:", e);
     }
   }, []);
 
   useEffect(() => {
     if (alarms.length > 0) {
-      localStorage.setItem('gentle-alarms', JSON.stringify(alarms));
+      try {
+        localStorage.setItem('gentle-alarms', JSON.stringify(alarms));
+      } catch (e) {
+        console.error("Failed to save alarms:", e);
+      }
     }
   }, [alarms]);
 
@@ -105,7 +113,9 @@ export default function App() {
     const ctx = initAudioContext();
     await ctx.resume();
     // Vibration permission isn't explicitly promptable, calling it works.
-    navigator.vibrate(100);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(100);
+    }
     setPermissionsGranted(true);
   };
 
@@ -125,7 +135,7 @@ export default function App() {
           Enable & Start
         </button>
         <p className="text-white/20 mt-8 max-w-xs uppercase tracking-widest text-[8px] leading-relaxed">
-          Note: iOS devices do not support web vibration. The alarm will still play audio.
+          Note: If vibration is blocked, please open the app in a new tab. iOS devices do not support web vibration. The alarm will still play audio.
         </p>
       </div>
     );
@@ -220,7 +230,7 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
 
   const [testActive, setTestActive] = useState(false);
   const stopAudioRef = useRef<(() => void) | null>(null);
-  const vibrationSupported = 'vibrate' in navigator;
+  const vibrationSupported = typeof navigator !== 'undefined' && 'vibrate' in navigator;
 
   useEffect(() => {
     return () => {
@@ -334,15 +344,15 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
                 <button 
                   onClick={() => {
                     if (testActive) {
-                      navigator.vibrate(0);
+                      if (vibrationSupported && navigator.vibrate) navigator.vibrate(0);
                       setTestActive(false);
                     } else {
-                      if (vibrationSupported) {
+                      if (vibrationSupported && navigator.vibrate) {
                         navigator.vibrate([200, 100, 300, 100, 500, 150, 800]); 
                       }
                       setTestActive(true);
                       setTimeout(() => { 
-                        if (vibrationSupported) navigator.vibrate(0); 
+                        if (vibrationSupported && navigator.vibrate) navigator.vibrate(0); 
                         setTestActive(false); 
                       }, 3000);
                     }
@@ -356,7 +366,7 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
                   {!vibrationSupported ? (
                     <span className="text-red-400">Web Haptics not supported on this browser.</span>
                   ) : (
-                    <span>Note: Web haptics only work on Android. Apple blocks vibration on all iOS browsers.</span>
+                    <span>Note: If vibration doesn't work, open the app in a new tab. Apple blocks vibration on all iOS browsers.</span>
                   )}
                 </div>
               </div>
