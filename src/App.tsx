@@ -330,32 +330,35 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
                 </div>
               </div>
               
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <button 
                   onClick={() => {
-                    if (!vibrationSupported) {
-                      alert('Vibration is not supported on this device/browser (e.g. iPhones or missing permissions).');
-                      return;
-                    }
                     if (testActive) {
                       navigator.vibrate(0);
                       setTestActive(false);
                     } else {
-                      navigator.vibrate([200, 100, 300, 100, 500, 150, 800]); 
+                      if (vibrationSupported) {
+                        navigator.vibrate([200, 100, 300, 100, 500, 150, 800]); 
+                      }
                       setTestActive(true);
-                      setTimeout(() => { navigator.vibrate(0); setTestActive(false) }, 3000);
+                      setTimeout(() => { 
+                        if (vibrationSupported) navigator.vibrate(0); 
+                        setTestActive(false); 
+                      }, 3000);
                     }
                   }}
-                  className={`w-full py-3 bg-transparent border border-white/20 rounded-full text-xs uppercase tracking-widest ${vibrationSupported ? 'hover:bg-white hover:text-black' : 'opacity-50 cursor-not-allowed'} mt-4 flex justify-center items-center gap-2 transition-colors`}
+                  className={`w-full py-3 rounded-full text-xs uppercase tracking-widest font-bold flex justify-center items-center gap-2 transition-all duration-75 ${testActive ? 'bg-amber-500 text-black translate-x-[1px] translate-y-[1px]' : 'bg-transparent border border-white/20 text-[#E5E5E5] hover:bg-white hover:text-black'}`}
                 >
                   {testActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  Test Signature
+                  {testActive ? 'Vibrating...' : 'Test Signature'}
                 </button>
-                {!vibrationSupported && (
-                  <p className="text-[10px] text-red-400 text-center uppercase tracking-widest">
-                    Haptics not supported on this device
-                  </p>
-                )}
+                <div className="text-[9px] text-white/40 text-center uppercase tracking-widest leading-relaxed">
+                  {!vibrationSupported ? (
+                    <span className="text-red-400">Web Haptics not supported on this browser.</span>
+                  ) : (
+                    <span>Note: Web haptics only work on Android. Apple blocks vibration on all iOS browsers.</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -410,9 +413,9 @@ function ActiveAlarmView({ alarm, state, currentTime, onStop, onSnooze }: { alar
       <div className="w-full text-center mt-12 relative flex flex-col items-center">
         <div className="absolute -left-4 top-0 w-1 h-32 bg-amber-500/20 hidden md:block"></div>
         <motion.div 
-          animate={{ scale: [1, 1.02, 1] }}
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          className="text-[120px] leading-none font-thin tracking-tighter text-white select-none mb-6"
+          animate={state === 'ramping' || state === 'hold' ? { x: [-2, 2, -2, 2, 0], y: [-1, 1, -1, 1, 0] } : { scale: [1, 1.02, 1] }}
+          transition={state === 'ramping' || state === 'hold' ? { repeat: Infinity, duration: 0.2, ease: "linear" } : { repeat: Infinity, duration: 2, ease: "easeInOut" }}
+          className={`text-[120px] leading-none font-thin tracking-tighter text-white select-none mb-6 ${state === 'ramping' || state === 'hold' ? 'text-amber-500' : ''}`}
         >
           {timeStr}
         </motion.div>
