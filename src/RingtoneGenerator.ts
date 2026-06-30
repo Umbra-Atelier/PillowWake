@@ -1,5 +1,17 @@
 import { Ringtone } from './types';
 
+export let globalAudioContext: AudioContext | null = null;
+
+export const initAudioContext = () => {
+  if (!globalAudioContext) {
+    globalAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  if (globalAudioContext.state === 'suspended') {
+    globalAudioContext.resume();
+  }
+  return globalAudioContext;
+};
+
 // Simple tone generator
 const playTone = (audioCtx: AudioContext, frequency: number, type: OscillatorType, startTime: number, duration: number) => {
   const osc = audioCtx.createOscillator();

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alarm } from './types';
-import { RINGTONES } from './RingtoneGenerator';
+import { RINGTONES, globalAudioContext } from './RingtoneGenerator';
 
 type AlarmState = 'idle' | 'ramping' | 'hold' | 'ringtone';
 
@@ -10,7 +10,6 @@ export function useAlarmManager(alarms: Alarm[]) {
   
   const startTimeRef = useRef<number>(0);
   const stopAudioRef = useRef<(() => void) | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
   
   const tickRef = useRef<number | null>(null);
 
@@ -45,11 +44,8 @@ export function useAlarmManager(alarms: Alarm[]) {
     setAlarmState('ramping');
     startTimeRef.current = Date.now();
     
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+    if (globalAudioContext && globalAudioContext.state === 'suspended') {
+      globalAudioContext.resume();
     }
   }, []);
 
@@ -130,8 +126,8 @@ export function useAlarmManager(alarms: Alarm[]) {
       // Handle Audio
       if (currentState === 'ringtone' && !stopAudioRef.current) {
         const ringtoneDef = RINGTONES.find(r => r.id === activeAlarm.ringtone) || RINGTONES[0];
-        if (audioCtxRef.current) {
-           stopAudioRef.current = ringtoneDef.play(audioCtxRef.current);
+        if (globalAudioContext) {
+           stopAudioRef.current = ringtoneDef.play(globalAudioContext);
         }
       }
       

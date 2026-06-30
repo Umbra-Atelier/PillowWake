@@ -3,7 +3,7 @@ import { motion, useMotionValue, useTransform } from 'motion/react';
 import { Bell, Plus, Settings, ChevronRight, X, Play, Clock, Pause, Moon } from 'lucide-react';
 import { Alarm } from './types';
 import { useAlarmManager } from './useAlarmManager';
-import { RINGTONES } from './RingtoneGenerator';
+import { RINGTONES, initAudioContext } from './RingtoneGenerator';
 
 const DEFAULT_ALARM: Omit<Alarm, 'id'> = {
   time: '07:00',
@@ -102,7 +102,7 @@ export default function App() {
 
   const requestPermissions = async () => {
     // Audio context requires user interaction to start
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = initAudioContext();
     await ctx.resume();
     // Vibration permission isn't explicitly promptable, calling it works.
     navigator.vibrate(100);
@@ -124,6 +124,9 @@ export default function App() {
         >
           Enable & Start
         </button>
+        <p className="text-white/20 mt-8 max-w-xs uppercase tracking-widest text-[8px] leading-relaxed">
+          Note: iOS devices do not support web vibration. The alarm will still play audio.
+        </p>
       </div>
     );
   }
@@ -216,6 +219,33 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
   });
 
   const [testActive, setTestActive] = useState(false);
+  const stopAudioRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (stopAudioRef.current) {
+        stopAudioRef.current();
+      }
+    };
+  }, []);
+
+  const playPreview = (ringtoneId: string, duration = 2000) => {
+    if (stopAudioRef.current) {
+      stopAudioRef.current();
+      stopAudioRef.current = null;
+    }
+    const ctx = initAudioContext();
+    const rt = RINGTONES.find(r => r.id === ringtoneId);
+    if (rt) {
+      stopAudioRef.current = rt.play(ctx);
+      setTimeout(() => {
+        if (stopAudioRef.current) {
+          stopAudioRef.current();
+          stopAudioRef.current = null;
+        }
+      }, duration);
+    }
+  };
 
   return (
     <motion.div 
@@ -305,9 +335,9 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
                     navigator.vibrate(0);
                     setTestActive(false);
                   } else {
-                    navigator.vibrate([1000, 0]); // just a simple blast
+                    navigator.vibrate([200, 100, 300, 100, 500, 150, 800]); 
                     setTestActive(true);
-                    setTimeout(() => { navigator.vibrate(0); setTestActive(false) }, 2000);
+                    setTimeout(() => { navigator.vibrate(0); setTestActive(false) }, 3000);
                   }
                 }}
                 className="w-full py-3 bg-transparent border border-white/20 rounded-full text-xs uppercase tracking-widest hover:bg-white hover:text-black mt-4 flex justify-center items-center gap-2 transition-colors"
@@ -325,7 +355,10 @@ function AlarmEditor({ alarm, onSave, onClose, onDelete }: { alarm: Alarm | null
               {RINGTONES.map((rt) => (
                 <div 
                   key={rt.id}
-                  onClick={() => setFormData({ ...formData, ringtone: rt.id })}
+                  onClick={() => {
+                    setFormData({ ...formData, ringtone: rt.id });
+                    playPreview(rt.id, 2000);
+                  }}
                   className={`p-4 rounded flex justify-between items-center cursor-pointer border ${formData.ringtone === rt.id ? 'bg-white/10 border-amber-500/50' : 'bg-white/5 border-transparent'} transition-colors`}
                 >
                   <span className="text-sm italic font-serif">{rt.name}</span>
